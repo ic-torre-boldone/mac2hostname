@@ -21,3 +21,5 @@ _testmain.go
 
 *.exe
 *.test
+mac2hostname
+mac2hostname.sqlite3
