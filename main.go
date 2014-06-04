@@ -7,6 +7,7 @@ import (
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"os"
@@ -16,6 +17,9 @@ import (
 
 var db *sql.DB
 var default_hostname_base string
+
+const DEFAULT_DB string = "mac2hostname.sqlite3"
+const DEFAULT_PORT string = "3000"
 
 func main() {
 	// Initialize new CLI app
@@ -27,23 +31,49 @@ func main() {
 	app.Usage = "Simple hostname generator"
 	app.Version = "0.0.1"
 	app.Flags = []cli.Flag{
-		cli.StringFlag{"port, p", "3000", "Port to listen on"},
-		cli.StringFlag{"db, d", "mac2hostname.sqlite3", "Full path to the database file"},
-		cli.StringFlag{"hostname_base, H", "machine", "String used to compose the final hostname"},
+		cli.StringFlag{"port, p", "", "Port to listen on"},
+		cli.StringFlag{"db, d", "", "Full path to the database file"},
+		cli.StringFlag{"hostname_base, H", "", "String used to compose the final hostname"},
 	}
 
+	viper.SetConfigName("config")
+	viper.AddConfigPath("/etc/mac2hostname/")
+	viper.SetDefault("port", DEFAULT_PORT)
+	viper.SetDefault("db", DEFAULT_DB)
+	viper.SetDefault("hostname_base", "machine")
+	viper.ReadInConfig()
+
 	app.Action = func(c *cli.Context) {
-		init_db(c.String("db"))
+
+		var db_path string
+
+		if len(c.String("db")) > 0 {
+			db_path = c.String("db")
+		} else {
+			db_path = viper.GetString("db")
+		}
+		init_db(db_path)
 		defer db.Close()
 
-		default_hostname_base = c.String("hostname_base")
+		if len(c.String("hostname_base")) > 0 {
+			default_hostname_base = c.String("hostname_base")
+		} else {
+			default_hostname_base = viper.GetString("hostname_base")
+		}
 
 		router := mux.NewRouter()
 		router.HandleFunc("/mac2hostname", mac2hostname).Methods("GET")
 
+		listen_port := ":"
+		if len(c.String("port")) > 0 {
+			listen_port += c.String("port")
+		} else {
+			listen_port += viper.GetString("port")
+		}
+
 		n := negroni.Classic()
 		n.UseHandler(router)
-		n.Run(":" + c.String("port"))
+		n.Run(listen_port)
 	}
 
 	app.Run(os.Args)

@@ -37,6 +37,18 @@ The web app can be started by doing: `./mac2hostname [options]`.
 More details can be obtaining by running `mac2hostname --help`.
 
 
+Configuration
+=============
+
+mac2hostname looks for a yaml, json or toml configuration file under `/etc/mac2hostname/config.{yaml|json|toml}`.
+
+This is a simple yaml configuration file:
+```
+port: 4000
+db: /var/lib/mac2hostname/db.sqlite3
+hostname_base: machine
+```
+
 API
 ===
 
